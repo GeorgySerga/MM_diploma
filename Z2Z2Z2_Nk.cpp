@@ -6,12 +6,12 @@ using namespace std;
 const int n = 3; //степень простого числа
 const int q = 8; // q = 2^n - количество элементов в Омега
 const int m = (q-1) * q; // m = (q^2 - q)
-const int K = 4; // Ограничение k сверху
+const int K = 3; // Ограничение k сверху
 
 int g[] = {0, 1, 2, 3, 4, 5, 6, 7};
-int Nk_Gi[K]; // количество перестановок h, для которых матрица P становится положительной при минимальном k
+int Nk_Gi[K];
 int nu, _k;
-ofstream myfile("used");
+ofstream myfile("used2");
 
 void swap (int &a, int &b) {
 	int temp = a;
@@ -19,13 +19,38 @@ void swap (int &a, int &b) {
 	b = temp;
 }
 
+int myPow(int x, int p) {
+	if (p == 0) return 1;
+	if (p == 1) return x;
+	int tmp = myPow(x, p/2);
+	if (p%2 == 0) return tmp * tmp;
+	else return x * tmp * tmp;
+}
+
+int sum_mod_2 (int x, int y) {
+	int x_set[3], y_set[3];
+	int mod_elem = 0;
+	for (int j = 2; j > -1; j--) {
+		x_set[j] = x % 2;
+		x /= 2;
+		y_set[j] = y % 2;
+		y /= 2;
+	}
+	for (int i = 0; i < 3; i++) {
+		mod_elem += ((x_set[i] + y_set[i]) % 2) * myPow(2,2-i);
+	}
+	return mod_elem;
+}
+
 void Nu_positivity (int a, int b, int c, int d, int *H, int k) {
-	if ((_k == k) && (nu > 0)) return; // нет смысла искать "минимальное k" среди >= уже найденного
+	if ((_k == k) && (nu > 0)) return;
 	if (k < K) {
 		k++;
 		if (k > 2) {
 			for (int r = 0; r < q; r++) {
-				if ((g[(H[a] + r) % q] == c) && (g[(H[b] + r) % q] == d)) {
+				int A = sum_mod_2(H[a], r);
+				int B = sum_mod_2(H[b], r);
+				if ((g[A] == c) && (g[B] == d)) {
 					if (_k == 0) _k = k;
 					if (_k > k) _k = k;
 					nu++;
@@ -33,13 +58,17 @@ void Nu_positivity (int a, int b, int c, int d, int *H, int k) {
 				}
 			}
 		}
-		for (int r = 0; r < q; r++) Nu_positivity(g[(H[a] + r) % q], g[(H[b] + r) % q], c, d, H, k);
+		for (int r = 0; r < q; r++) {
+			int A = sum_mod_2(H[a], r);
+			int B = sum_mod_2(H[b], r);
+			Nu_positivity(g[A], g[B], c, d, H, k);
+		}
 	}
+
 }
 
 void result () {
 	for (int i = 0; i < K-2; i++) cout << Nk_Gi[i] << " ";
-	cout << endl;
 }
 
 void P_positivity (int H[]) {
@@ -58,12 +87,12 @@ void P_positivity (int H[]) {
 			int k = 0;
 			nu = 0;
 			_k = 0;
-			Nu_positivity(a, b, c, d, H, k); // ищется мнимальное k, при котором элемент матрицы будет > 0
+			Nu_positivity(a, b, c, d, H, k);
 			if (nu == 0) {
 				myfile << endl;
 				return; //прекращение расчетов матрицы, так как она уже неположительная
 			}
-			if (k_max < _k) k_max = _k; //среди минимальных выбирается макимальное, при котором P > 0
+			if (k_max < _k) k_max = _k;
 		}
 	}
 	Nk_Gi[k_max-3]++;
